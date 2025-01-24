@@ -14,10 +14,7 @@ class Program
 
         var fileNames = HtmlFileNameExtractor.ExtractFileNames(html);
 
-        foreach (var fileName in fileNames)
-        {
-            Console.WriteLine(fileName);
-        }
+        await ArchiveDownloader.DownloadFileAsync(baseUrl, fileNames[1]);
 
     }
 }
