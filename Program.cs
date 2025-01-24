@@ -14,7 +14,9 @@ class Program
 
         var fileNames = HtmlFileNameExtractor.ExtractFileNames(html);
 
-        await ArchiveDownloader.DownloadFileAsync(baseUrl, fileNames[1]);
+        await ArchiveDownloader.DownloadFileAsync(baseUrl, fileNames[36]);
+
+        await FileDecompressor.DecompressAsync(fileNames[36]);
 
     }
 }
