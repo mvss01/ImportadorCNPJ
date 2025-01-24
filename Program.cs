@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using ImportadorCNPJ.Services;
+﻿using ImportadorCNPJ.Services;
 
 class Program
 {
@@ -13,8 +10,12 @@ class Program
 
         string html = await httpService.GetHtmlAsync(url);
 
-        Console.WriteLine("Resposta HTML:");
-        Console.WriteLine(html);
+        var fileNames = HtmlFileNameExtractor.ExtractFileNames(html);
+
+        foreach (var fileName in fileNames)
+        {
+            Console.WriteLine(fileName);
+        }
 
     }
 }

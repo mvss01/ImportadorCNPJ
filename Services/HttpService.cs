@@ -1,6 +1,3 @@
-using System.Net.Http;
-using System.Threading.Tasks;
-
 namespace ImportadorCNPJ.Services
 {
     public class HttpService
