@@ -6,6 +6,7 @@ namespace ImportadorCNPJ.Services
     {
         public static List<string> ExtractFileNames(string html)
         {
+            Console.WriteLine("Extraindo nomes dos arquivos do HTML...");
             var fileNames = new List<string>();
 
             if (string.IsNullOrWhiteSpace(html))

@@ -6,9 +6,11 @@ class Program
     {
         var httpService = new HttpService();
 
-        string url = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-01/";
+        string year = DateTime.Now.Year.ToString();
+        string month = DateTime.Now.Month.ToString("D2");
+        string baseUrl = $"https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{year}-{month}/";
 
-        string html = await httpService.GetHtmlAsync(url);
+        string html = await httpService.GetHtmlAsync(baseUrl);
 
         var fileNames = HtmlFileNameExtractor.ExtractFileNames(html);
 

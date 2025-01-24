@@ -15,6 +15,7 @@ namespace ImportadorCNPJ.Services
 
         public async Task<string> GetHtmlAsync(string url)
         {
+            Console.WriteLine("Requisitando corpo HTML...");
             try
             {
                 return await _httpClient.GetStringAsync(url);
