@@ -15,8 +15,12 @@ class Program
         var fileNames = HtmlFileNameExtractor.ExtractFileNames(html);
 
         await ArchiveDownloader.DownloadFileAsync(baseUrl, fileNames[36]);
-
+//36
         await FileDecompressor.DecompressAsync(fileNames[36]);
+
+        var processarDados = new FileProcessor(fileNames[36]);
+
+        await processarDados.ProcessFileInBatchesAsync();
 
     }
 }

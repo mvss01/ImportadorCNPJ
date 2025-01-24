@@ -7,7 +7,8 @@ namespace ImportadorCNPJ.Services
         public static async Task DecompressAsync(string fileName)
         {
             string filePath = $"./Archives/{fileName}";
-            string outputPath = "./Archives";
+            string outputPath = $"./Archives";
+            Directory.CreateDirectory(outputPath);
 
             try
             {
@@ -35,7 +36,9 @@ namespace ImportadorCNPJ.Services
                             }
                             else
                             {
-                                entry.ExtractToFile(destinationPath, true);
+                                string newFileName = Path.GetFileNameWithoutExtension(fileName);
+                                string newDestinationPath = Path.Combine(outputPath, newFileName);
+                                entry.ExtractToFile(newDestinationPath, true);
                             }
 
                             extractedEntries++;
