@@ -1,9 +1,20 @@
-﻿using ImportadorCNPJ.Services;
+﻿using ImportadorCNPJ.Infra;
+using ImportadorCNPJ.Services;
 
 class Program
 {
     static async Task Main(string[] args)
     {
+        Database db = new();
+        using (var connection = db.GetConnection())
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT 1 + 1";
+            var result = await command.ExecuteScalarAsync();
+            Console.WriteLine($"Result of 1 + 1 is: {result}");
+        }
+
         var httpService = new HttpService();
 
         string year = DateTime.Now.Year.ToString();

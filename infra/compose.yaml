@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: "Senh@123"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+    restart: always
