@@ -1,5 +1,5 @@
 using Microsoft.Data.SqlClient;
-
+using ImportadorCNPJ.Helper;
 namespace ImportadorCNPJ.Helper
 {
     public class DatabaseHelper
@@ -48,61 +48,31 @@ namespace ImportadorCNPJ.Helper
         // Cria as tabelas do arquivo CreateTables.sql caso elas não existam
         public static void CreateTablesIfNotExists(SqlConnection connection)
         {
-            // Caminho para o arquivo CreateTables.sql
-            string filePath = "./Schemas/CreateTables.sql";
+            string[] createTableCommands = SchemaHelper.ExtractSchemas("./Schemas/CreateTables.sql");
 
-            if (!File.Exists(filePath))
+            if (createTableCommands.Length == 0)
             {
-                Console.WriteLine("Arquivo CreateTables.sql não encontrado.");
-                return;
+            Console.WriteLine("Nenhum comando SQL encontrado ou erro ao carregar o arquivo.");
+            return;
             }
 
-            // Lê o conteúdo do arquivo SQL
-            string sqlScript = File.ReadAllText(filePath);
+            string[] tableNames = SchemaHelper.ExtractTableNames("./Schemas/CreateTables.sql");
 
-            // Divide o script em comandos individuais (baseado no ponto e vírgula)
-            string[] tableCommands = sqlScript.Split(";", StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (string commandText in tableCommands)
+            foreach (string tableName in tableNames)
             {
-                // Extração do nome da tabela
-                string? tableName = ExtractTableName(commandText);
-
-                if (!string.IsNullOrWhiteSpace(tableName))
-                {
-                    if (!CheckTableExists(tableName, connection))
-                    {
-                        using var command = new SqlCommand(commandText, connection);
-                        command.ExecuteNonQuery();
-                        Console.WriteLine($"Tabela '{tableName}' criada com sucesso.");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"A tabela '{tableName}' já existe no banco de dados '{connection.Database}'.");
-                    }
-                }
+            if (!CheckTableExists(tableName, connection))
+            {
+                string commandText = SchemaHelper.GetCreateTableCommand(tableName, "./Schemas/CreateTables.sql");
+                using var command = new SqlCommand(commandText, connection);
+                command.ExecuteNonQuery();
+                Console.WriteLine($"Tabela '{tableName}' criada com sucesso.");
+            }
+            else
+            {
+                Console.WriteLine($"A tabela '{tableName}' já existe no banco de dados '{connection.Database}'.");
+            }
             }
         }
 
-        // Método auxiliar para extrair o nome da tabela a partir do comando SQL
-        private static string? ExtractTableName(string createTableCommand)
-        {
-            const string createTableKeyword = "CREATE TABLE ";
-
-            int startIndex = createTableCommand.IndexOf(createTableKeyword, StringComparison.OrdinalIgnoreCase);
-
-            if (startIndex >= 0)
-            {
-                startIndex += createTableKeyword.Length;
-                int endIndex = createTableCommand.IndexOf('(', startIndex);
-
-                if (endIndex > startIndex)
-                {
-                    return createTableCommand[startIndex..endIndex].Trim();
-                }
-            }
-
-            return null;
-        }
     }
 }
