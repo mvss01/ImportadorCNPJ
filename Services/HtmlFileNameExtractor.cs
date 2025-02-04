@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ImportadorCNPJ.Helper;
 
 namespace ImportadorCNPJ.Services
 {
@@ -26,6 +27,42 @@ namespace ImportadorCNPJ.Services
             }
 
             return fileNames;
+        }
+
+        public static async Task<List<List<string>>> GroupFiles()
+        {
+            var httpService = new HttpService();
+
+            string year = DateTime.Now.Year.ToString();
+            string month = DateTime.Now.Month.ToString("D2");
+            // string baseUrl = $"https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{year}-{month}/";
+            string baseUrl = $"https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{year}-01/";
+
+            string html = await httpService.GetHtmlAsync(baseUrl);
+
+            var fileNames = ExtractFileNames(html);
+
+            string[] tableNames = SchemaHelper.ExtractTableNames("./Schemas/CreateTables.sql");
+
+            var groupedFilesList = new List<List<string>>();
+
+            foreach (string tableName in tableNames)
+            {
+                var groupedFiles = fileNames
+                    .Where(fileName => fileName.StartsWith(tableName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (groupedFiles.Count == 0)
+                {
+                    Console.WriteLine($"Nenhum arquivo encontrado para a tabela {tableName}");
+                }
+                else
+                {
+                    groupedFilesList.Add(groupedFiles);
+                }
+            }
+
+            return groupedFilesList;
         }
     }
 }

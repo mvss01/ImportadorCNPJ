@@ -18,7 +18,7 @@ namespace ImportadorCNPJ.Services
                     return;
                 }
 
-                Console.WriteLine($"Decompactando arquivo {fileName}...");
+                Console.WriteLine($"Descompactando arquivo {fileName}...");
 
                 await Task.Run(() =>
                 {

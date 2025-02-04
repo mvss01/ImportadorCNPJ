@@ -1,5 +1,4 @@
 using Microsoft.Data.SqlClient;
-using ImportadorCNPJ.Helper;
 namespace ImportadorCNPJ.Helper
 {
     public class DatabaseHelper

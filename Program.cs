@@ -1,6 +1,6 @@
 ﻿using ImportadorCNPJ.Infra;
-using ImportadorCNPJ.Services;
 using ImportadorCNPJ.Helper;
+using ImportadorCNPJ.Services;
 
 class Program
 {
@@ -26,23 +26,17 @@ class Program
             DatabaseHelper.CreateTablesIfNotExists(cnpjConnection);
         }
 
-        // 4. Lógica para baixar e processar os arquivos
-        var httpService = new HttpService();
+        // 4. Extrair nome dos arquivos e agrupar pelo nome das tabelas
+        List<List<string>> groupedFiles = await HtmlFileNameExtractor.GroupFiles();
 
-        string year = DateTime.Now.Year.ToString();
-        string month = DateTime.Now.Month.ToString("D2");
-        string baseUrl = $"https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{year}-{month}/";
-
-        string html = await httpService.GetHtmlAsync(baseUrl);
-        Console.WriteLine(html);
-        var fileNames = HtmlFileNameExtractor.ExtractFileNames(html);
-
-        await ArchiveDownloader.DownloadFileAsync(baseUrl, fileNames[36]);
-
-        await FileDecompressor.DecompressAsync(fileNames[36]);
-
-        var processarDados = new FileProcessor(fileNames[36]);
-
-        await processarDados.ProcessFileInBatchesAsync();
+        // 5. Iterar sobre os grupos de arquivos e processá-los
+        foreach (var fileGroup in groupedFiles)
+        {
+            foreach (var fileName in fileGroup)
+            {
+                var fileProcessor = new FileProcessor(fileName);
+                await fileProcessor.ExecuteFullProcessAsync();
+            }
+        }
     }
 }
