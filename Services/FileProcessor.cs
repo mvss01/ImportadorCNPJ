@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using ImportadorCNPJ.Data;
 using ImportadorCNPJ.Infra;
 
@@ -83,9 +84,9 @@ namespace ImportadorCNPJ.Services
 
         private async Task ProcessBatchAsync(List<string> batch)
         {
-            string tableName = Path.GetFileNameWithoutExtension(_fileName).Split('_')[0].ToUpper();
+            string tableName = MyRegex1().Replace(Path.GetFileNameWithoutExtension(_fileName).Split('_')[0], "").ToUpper();
             string[] columns = DetermineTableColumns(tableName);
-            var parsedBatch = batch.Select(ParseCsvLine).ToList();
+            var parsedBatch = batch.Select(ParseCsvLine).Select(line => line.Cast<object>().ToArray()).ToList();
 
             using var db = new Database("CNPJ");
             using var connection = db.GetConnection();
@@ -94,9 +95,9 @@ namespace ImportadorCNPJ.Services
             await databaseController.InsertBatchAsync(tableName, columns, parsedBatch);
         }
 
-        private static readonly Dictionary<string, string[]> _tableSchemas = new();
+        private static readonly Dictionary<string, string[]> _tableSchemas = [];
 
-        private static void LoadTableSchemas()
+        public static void LoadTableSchemas()
         {
             string schemaFilePath = "./Schemas/CreateTables.sql";
             if (!File.Exists(schemaFilePath))
@@ -113,7 +114,7 @@ namespace ImportadorCNPJ.Services
                 {
                     var tableName = ExtractTableName(lines[0]);
                     var columns = lines.Skip(1)
-                        .Where(line => line.Contains('(') || line.Contains('[') || line.Contains('"'))
+                        .Where(line => IsColumnDefinition(line)) // Filtra apenas linhas que definem colunas
                         .Select(ExtractColumnName)
                         .Where(column => !string.IsNullOrEmpty(column))
                         .ToArray();
@@ -123,44 +124,52 @@ namespace ImportadorCNPJ.Services
             }
         }
 
+        private static bool IsColumnDefinition(string line)
+        {
+            // Verifica se a linha contém uma definição de coluna válida
+            line = line.Trim();
+            return !line.StartsWith("FOREIGN KEY", StringComparison.OrdinalIgnoreCase) &&
+                !line.StartsWith("PRIMARY KEY", StringComparison.OrdinalIgnoreCase) &&
+                !line.StartsWith(")", StringComparison.OrdinalIgnoreCase); // Ignora fechamento de tabela
+        }
+
         private static string ExtractTableName(string tableNameLine)
         {
-            return tableNameLine.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0].Trim('(', ')').ToUpper();
+            // Normaliza o nome da tabela removendo parênteses e convertendo para maiúsculas
+            return tableNameLine.Split('(', StringSplitOptions.RemoveEmptyEntries)[0]
+                                .Trim()
+                                .ToUpper();
         }
 
         private static string ExtractColumnName(string columnDefinition)
         {
             columnDefinition = columnDefinition.Trim();
 
-            if (columnDefinition.Contains('[') && columnDefinition.Contains(']'))
+            // Remove palavras-chave como PRIMARY KEY, NOT NULL, etc.
+            var keywords = new[] { "PRIMARY KEY", "NOT NULL", "NULL", "UNIQUE", "AUTO_INCREMENT" };
+            foreach (var keyword in keywords)
             {
-                return columnDefinition[(columnDefinition.IndexOf('[') + 1)..columnDefinition.IndexOf(']')];
+                var keywordIndex = columnDefinition.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
+                if (keywordIndex > 0)
+                {
+                    columnDefinition = columnDefinition[..keywordIndex].Trim();
+                }
             }
-            if (columnDefinition.Contains('"'))
-            {
-                return columnDefinition[(columnDefinition.IndexOf('"') + 1)..columnDefinition.LastIndexOf('"')];
-            }
+
+            // Extrai o nome da coluna baseado no formato comum
             var parts = columnDefinition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return parts.Length > 0 ? parts[0] : string.Empty;
         }
 
-        private static string[] DetermineTableColumns(string tableName)
+        public static string[] DetermineTableColumns(string tableName)
         {
-            // Remover números ao final do nome da tabela
-            string normalizedTableName = NormalizeTableName(tableName);
-
+            // Remove números ao final do nome da tabela para normalização
             if (_tableSchemas.Count == 0)
                 LoadTableSchemas();
 
-            return _tableSchemas.TryGetValue(normalizedTableName, out var columns)
+            return _tableSchemas.TryGetValue(tableName, out var columns)
                 ? columns
-                : throw new InvalidOperationException($"Tabela não reconhecida: {normalizedTableName}");
-        }
-
-        private static string NormalizeTableName(string tableName)
-        {
-            // Usar Regex para remover números no final do nome da tabela
-            return MyRegex().Replace(tableName, "");
+                : throw new InvalidOperationException($"Tabela não reconhecida: {tableName}");
         }
 
         private static string[] ParseCsvLine(string line)
@@ -198,5 +207,7 @@ namespace ImportadorCNPJ.Services
 
         [System.Text.RegularExpressions.GeneratedRegex(@"\d+$")]
         private static partial System.Text.RegularExpressions.Regex MyRegex();
+        [GeneratedRegex(@"\d")]
+        private static partial Regex MyRegex1();
     }
 }

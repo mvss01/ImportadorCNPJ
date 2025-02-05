@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
-
+using System.Data;
+using System.Globalization;
 
 namespace ImportadorCNPJ.Data
 {
@@ -7,13 +8,14 @@ namespace ImportadorCNPJ.Data
     {
         private readonly SqlConnection _connection = connection;
 
-        public async Task InsertBatchAsync(string tableName, string[] columns, List<string[]> batch)
+        public async Task InsertBatchAsync(string tableName, string[] columns, List<object[]> batch)
         {
-            if (batch.Count == 0) return;
+            if (batch == null || batch.Count == 0)
+                throw new ArgumentException("O lote de dados está vazio ou nulo.");
 
             try
             {
-                // Monta o comando SQL para inserção em massa
+                // Monta a query SQL dinamicamente
                 var columnNames = string.Join(", ", columns);
                 var valuePlaceholders = string.Join(", ", columns.Select((_, index) => $"@col{index}"));
 
@@ -22,16 +24,23 @@ namespace ImportadorCNPJ.Data
                 foreach (var row in batch)
                 {
                     if (row.Length != columns.Length)
-                    {
-                        Console.WriteLine($"Erro: Número de valores ({row.Length}) não corresponde ao número de colunas ({columns.Length}) na tabela {tableName}.");
-                        continue; // Ignora linhas inválidas
-                    }
+                        throw new ArgumentException("O número de valores não corresponde ao número de colunas.");
 
                     using var command = new SqlCommand(query, _connection);
 
                     for (int i = 0; i < columns.Length; i++)
                     {
-                        command.Parameters.AddWithValue($"@col{i}", row[i] != null ? row[i] : DBNull.Value);
+                        var value = row[i];
+
+                        // Tratamento genérico para conversões
+                        if (value is string strValue && decimal.TryParse(strValue.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal decimalValue))
+                        {
+                            command.Parameters.AddWithValue($"@col{i}", decimalValue);
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue($"@col{i}", value ?? DBNull.Value);
+                        }
                     }
 
                     await command.ExecuteNonQueryAsync();
@@ -42,6 +51,5 @@ namespace ImportadorCNPJ.Data
                 Console.WriteLine($"Erro ao inserir dados na tabela {tableName}: {ex.Message}");
             }
         }
-
     }
 }
