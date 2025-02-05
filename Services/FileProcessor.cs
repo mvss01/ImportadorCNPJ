@@ -4,7 +4,7 @@ using ImportadorCNPJ.Infra;
 
 namespace ImportadorCNPJ.Services
 {
-    public class FileProcessor(string fileName, int batchSize = 100000)
+    public partial class FileProcessor(string fileName, int batchSize = 100000)
     {
         private readonly string _fileName = fileName;
         private readonly string _filePath = Path.Combine("./Archives", Path.GetFileNameWithoutExtension(fileName));
@@ -146,10 +146,21 @@ namespace ImportadorCNPJ.Services
 
         private static string[] DetermineTableColumns(string tableName)
         {
+            // Remover números ao final do nome da tabela
+            string normalizedTableName = NormalizeTableName(tableName);
+
             if (_tableSchemas.Count == 0)
                 LoadTableSchemas();
 
-            return _tableSchemas.TryGetValue(tableName, out var columns) ? columns : throw new InvalidOperationException($"Tabela não reconhecida: {tableName}");
+            return _tableSchemas.TryGetValue(normalizedTableName, out var columns)
+                ? columns
+                : throw new InvalidOperationException($"Tabela não reconhecida: {normalizedTableName}");
+        }
+
+        private static string NormalizeTableName(string tableName)
+        {
+            // Usar Regex para remover números no final do nome da tabela
+            return MyRegex().Replace(tableName, "");
         }
 
         private static string[] ParseCsvLine(string line)
@@ -184,5 +195,8 @@ namespace ImportadorCNPJ.Services
             var progressPercentage = (double)batchNumber / totalBatches * 100;
             Console.Write($"\rProcessando arquivo em lotes [{batchNumber}/{totalBatches}] - Progresso: {progressPercentage:F2}%");
         }
+
+        [System.Text.RegularExpressions.GeneratedRegex(@"\d+$")]
+        private static partial System.Text.RegularExpressions.Regex MyRegex();
     }
 }
